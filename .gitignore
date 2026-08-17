@@ -1,0 +1,20 @@
+# Backend (Maven / Java)
+backend/target/
+*.class
+
+# Frontend (Node / Vite)
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Env files with real secrets -- never commit these
+.env
+backend/.env
+frontend/.env
+frontend/.env.local
+
+# OS / editor
+.DS_Store
+.idea/
+*.iml
+.vscode/

@@ -1,0 +1,29 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: skillgraph
+
+# CognoDB connection details -- always read from environment variables, never hardcoded.
+cognodb:
+  uri: ${COGNODB_URI:bolt+s://CHANGE_ME.databases.cognodb.cloud}
+  user: ${COGNODB_USER:cognodb}
+  password: ${COGNODB_PASSWORD:CHANGE_ME}
+
+# Allow the frontend dev server / hosted frontend to call the API
+app:
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+  health:
+    neo4j:
+      enabled: false
