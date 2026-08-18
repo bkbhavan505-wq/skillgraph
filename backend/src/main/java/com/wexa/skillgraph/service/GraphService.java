@@ -62,6 +62,39 @@ public class GraphService {
         );
     }
 
+
+    public Map<String, Object> getSkillGap(String candidateId, String jobId) {
+        Job job = jobRepo.findById(jobId)
+                .orElseThrow(() -> new NotFoundException("No job with id " + jobId));
+
+        Candidate candidate = candidateRepo.findById(candidateId)
+                .orElseThrow(() -> new NotFoundException("No candidate with id " + candidateId));
+
+        List<CandidateMatch> matches = matchRepo.candidatesForJob(jobId, 100);
+
+        return matches.stream()
+                .filter(match -> match.candidate().id().equals(candidate.id()))
+                .findFirst()
+                .map(match -> Map.<String, Object>of(
+                        "candidateName", candidate.name(),
+                        "jobTitle", job.title(),
+                        "matchedSkills", match.matchedSkills(),
+                        "missingSkills", match.missingSkills(),
+                        "matchedSkillCount", match.matchedSkillCount(),
+                        "requiredSkillCount", match.requiredSkillCount(),
+                        "matchPercentage",
+                        match.requiredSkillCount() == 0
+                                ? 0.0
+                                : match.matchedSkillCount() * 100.0
+                                  / match.requiredSkillCount()
+                ))
+                .orElseThrow(() ->
+                        new NotFoundException(
+                                "No match data found for candidate " + candidateId +
+                                        " and job " + jobId
+                        ));
+    }
+
     public List<Skill> listSkills() {
         return skillRepo.findAll();
     }

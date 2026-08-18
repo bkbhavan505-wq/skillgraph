@@ -26,4 +26,11 @@ public class CandidateController {
     public Map<String, Object> profile(@PathVariable String id) {
         return service.getCandidateProfile(id);
     }
+
+    @GetMapping("/{candidateId}/skill-gap/{jobId}")
+    public Map<String, Object> skillGap(
+            @PathVariable String candidateId,
+            @PathVariable String jobId) {
+        return service.getSkillGap(candidateId, jobId);
+    }
 }

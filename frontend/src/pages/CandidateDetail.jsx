@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../api/client.js";
@@ -9,112 +10,377 @@ import SkillPill from "../components/SkillPill.jsx";
 
 export default function CandidateDetail() {
   const { id } = useParams();
-  const [state, setState] = useState({ loading: true, error: null, data: null });
+
+  const [state, setState] = useState({
+    loading: true,
+    error: null,
+    data: null,
+  });
+
+  // Store skill-gap results separately for each job
+  const [skillGaps, setSkillGaps] = useState({});
+  const [skillGapLoading, setSkillGapLoading] = useState(null);
+  const [skillGapError, setSkillGapError] = useState(null);
 
   useEffect(() => {
     load();
   }, [id]);
 
   async function load() {
-    setState({ loading: true, error: null, data: null });
+    setState({
+      loading: true,
+      error: null,
+      data: null,
+    });
+
     try {
       const data = await api.getCandidate(id);
-      setState({ loading: false, error: null, data });
+
+      setState({
+        loading: false,
+        error: null,
+        data,
+      });
     } catch (e) {
-      setState({ loading: false, error: e.message, data: null });
+      setState({
+        loading: false,
+        error: e.message,
+        data: null,
+      });
     }
   }
 
-  if (state.loading) return <LoadingState label="Loading candidate" />;
-  if (state.error) return <ErrorState message={state.error} onRetry={load} />;
-  if (!state.data) return null;
+  async function loadSkillGap(jobId) {
+    // If already loaded, just show it
+    if (skillGaps[jobId]) {
+      return;
+    }
 
-  const { candidate, skills, jobMatches, similarCandidates } = state.data;
+    setSkillGapLoading(jobId);
+    setSkillGapError(null);
+
+    try {
+      console.log("Loading skill gap:", {
+        candidateId: id,
+        jobId,
+      });
+
+      const data = await api.skillGap(id, jobId);
+
+      console.log("Skill gap response:", data);
+
+      setSkillGaps((prev) => ({
+        ...prev,
+        [jobId]: data,
+      }));
+    } catch (e) {
+      console.error("Skill gap request failed:", e);
+
+      setSkillGapError({
+        jobId,
+        message: e.message || "Unable to load skill gap",
+      });
+    } finally {
+      setSkillGapLoading(null);
+    }
+  }
+
+  if (state.loading) {
+    return <LoadingState label="Loading candidate" />;
+  }
+
+  if (state.error) {
+    return <ErrorState message={state.error} onRetry={load} />;
+  }
+
+  if (!state.data) {
+    return null;
+  }
+
+  const {
+    candidate,
+    skills,
+    jobMatches,
+    similarCandidates,
+  } = state.data;
 
   const graphNodes = [
-    { id: "center", label: candidate.name, group: "center" },
-    ...skills.slice(0, 8).map((s) => ({ id: `s-${s.skillName}`, label: s.skillName, group: "skill" })),
+    {
+      id: "center",
+      label: candidate.name,
+      group: "center",
+    },
+    ...skills
+      .slice(0, 8)
+      .map((s) => ({
+        id: `s-${s.skillName}`,
+        label: s.skillName,
+        group: "skill",
+      })),
   ];
-  const graphEdges = graphNodes.filter((n) => n.id !== "center").map((n) => ({ source: "center", target: n.id }));
+
+  const graphEdges = graphNodes
+    .filter((n) => n.id !== "center")
+    .map((n) => ({
+      source: "center",
+      target: n.id,
+    }));
 
   return (
     <div>
-      <Link to="/candidates" className="text-xs font-mono text-papermuted hover:text-amber">
+      <Link
+        to="/candidates"
+        className="text-xs font-mono text-papermuted hover:text-amber"
+      >
         &larr; All candidates
       </Link>
 
+      {/* Candidate profile */}
       <div className="grid md:grid-cols-3 gap-8 mt-4 mb-12">
         <div className="md:col-span-2">
-          <h1 className="font-display text-3xl mb-1">{candidate.name}</h1>
-          <p className="text-sm font-mono text-papermuted mb-4">
-            {candidate.location} &middot; {candidate.experienceYears} yr experience &middot; {candidate.email}
-          </p>
-          <p className="text-papermuted leading-relaxed mb-6">{candidate.bio}</p>
+          <h1 className="font-display text-3xl mb-1">
+            {candidate.name}
+          </h1>
 
-          <h2 className="font-display text-lg mb-3">Skills</h2>
+          <p className="text-sm font-mono text-papermuted mb-4">
+            {candidate.location} &middot;{" "}
+            {candidate.experienceYears} yr experience &middot;{" "}
+            {candidate.email}
+          </p>
+
+          <p className="text-papermuted leading-relaxed mb-6">
+            {candidate.bio}
+          </p>
+
+          <h2 className="font-display text-lg mb-3">
+            Skills
+          </h2>
+
           <div className="flex flex-wrap gap-2 mb-2">
             {skills.map((s) => (
-              <SkillPill key={s.skillName} tone="have">
+              <SkillPill
+                key={s.skillName}
+                tone="have"
+              >
                 {s.skillName} &middot; L{s.proficiency}
               </SkillPill>
             ))}
           </div>
         </div>
+
         <Card>
-          <NetworkGraph nodes={graphNodes} edges={graphEdges} size={260} />
+          <NetworkGraph
+            nodes={graphNodes}
+            edges={graphEdges}
+            size={260}
+          />
         </Card>
       </div>
 
+      {/* Matching jobs */}
       <section className="mb-12">
-        <h2 className="font-display text-2xl mb-1">Matching jobs</h2>
+        <h2 className="font-display text-2xl mb-1">
+          Matching jobs
+        </h2>
+
         <p className="text-sm text-papermuted mb-4">
-          Ranked by required-skill overlap &mdash; a two-hop traversal from candidate to job through skills.
+          Ranked by required-skill overlap &mdash; a two-hop traversal
+          from candidate to job through skills.
         </p>
+
         {jobMatches.length === 0 ? (
-          <EmptyState title="No job matches yet" hint="This candidate doesn't share any skills with open roles." />
+          <EmptyState
+            title="No job matches yet"
+            hint="This candidate doesn't share any skills with open roles."
+          />
         ) : (
           <div className="space-y-3">
-            {jobMatches.map((m) => (
-              <CardLink key={m.job.id} to={`/jobs/${m.job.id}`}>
-                <div className="flex items-start justify-between gap-4 mb-2">
-                  <div>
-                    <h3 className="font-display text-lg">{m.job.title}</h3>
-                    <p className="text-xs font-mono text-papermuted">{m.job.companyName} &middot; {m.job.location}</p>
+            {jobMatches.map((m) => {
+              const gap = skillGaps[m.job.id];
+              const loading = skillGapLoading === m.job.id;
+              const error =
+                skillGapError?.jobId === m.job.id
+                  ? skillGapError.message
+                  : null;
+
+              return (
+                <CardLink
+                  key={m.job.id}
+                  to={`/jobs/${m.job.id}`}
+                >
+                  <div className="flex items-start justify-between gap-4 mb-2">
+                    <div>
+                      <h3 className="font-display text-lg">
+                        {m.job.title}
+                      </h3>
+
+                      <p className="text-xs font-mono text-papermuted">
+                        {m.job.companyName} &middot;{" "}
+                        {m.job.location}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <MatchBar matched={m.matchedSkillCount} required={m.requiredSkillCount} />
-                {m.missingSkills.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-3">
-                    {m.missingSkills.map((s) => (
-                      <SkillPill key={s} tone="missing">
-                        needs {s}
-                      </SkillPill>
-                    ))}
-                  </div>
-                )}
-              </CardLink>
-            ))}
+
+                  <MatchBar
+                    matched={m.matchedSkillCount}
+                    required={m.requiredSkillCount}
+                  />
+
+                  {/* Skill gap button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+
+                      loadSkillGap(m.job.id);
+                    }}
+                    className="mt-3 text-xs font-mono text-amber hover:underline"
+                  >
+                    {loading
+                      ? "Checking skill gap..."
+                      : gap
+                      ? "Hide / refresh skill gap"
+                      : "View skill gap"}
+                  </button>
+
+                  {/* API error */}
+                  {error && (
+                    <div className="mt-3 p-3 border border-red-500/40 rounded text-sm text-red-400">
+                      Skill gap error: {error}
+                    </div>
+                  )}
+
+                  {/* Skill gap result */}
+                  {gap && !gap.error && (
+                    <div
+                      className="mt-4 p-4 rounded border border-amber/30"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h4 className="font-display text-lg">
+                            Skill Gap
+                          </h4>
+
+                          <p className="text-xs font-mono text-papermuted">
+                            {gap.matchedSkillCount}/
+                            {gap.requiredSkillCount} skills matched
+                          </p>
+                        </div>
+
+                        <div className="text-amber font-mono text-lg">
+                          {Number(gap.matchPercentage).toFixed(0)}%
+                        </div>
+                      </div>
+
+                      {/* Matched */}
+                      <div className="mb-4">
+                        <h5 className="text-sm font-mono mb-2">
+                          Matched skills
+                        </h5>
+
+                        {gap.matchedSkills?.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {gap.matchedSkills.map((skill) => (
+                              <SkillPill
+                                key={skill}
+                                tone="have"
+                              >
+                                {skill}
+                              </SkillPill>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-papermuted">
+                            No matched skills.
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Missing */}
+                      <div>
+                        <h5 className="text-sm font-mono mb-2">
+                          Missing skills
+                        </h5>
+
+                        {gap.missingSkills?.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {gap.missingSkills.map((skill) => (
+                              <SkillPill
+                                key={skill}
+                                tone="missing"
+                              >
+                                needs {skill}
+                              </SkillPill>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-papermuted">
+                            No missing skills — this candidate matches
+                            all required skills.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Existing missing-skill display */}
+                  {m.missingSkills.length > 0 && !gap && (
+                    <div className="flex flex-wrap gap-1.5 mt-3">
+                      {m.missingSkills.map((s) => (
+                        <SkillPill
+                          key={s}
+                          tone="missing"
+                        >
+                          needs {s}
+                        </SkillPill>
+                      ))}
+                    </div>
+                  )}
+                </CardLink>
+              );
+            })}
           </div>
         )}
       </section>
 
+      {/* Similar candidates */}
       <section>
-        <h2 className="font-display text-2xl mb-1">Candidates like {candidate.name.split(" ")[0]}</h2>
-        <p className="text-sm text-papermuted mb-4">Shared skills, ranked by overlap.</p>
+        <h2 className="font-display text-2xl mb-1">
+          Candidates like {candidate.name.split(" ")[0]}
+        </h2>
+
+        <p className="text-sm text-papermuted mb-4">
+          Shared skills, ranked by overlap.
+        </p>
+
         {similarCandidates.length === 0 ? (
           <EmptyState title="No overlapping candidates found" />
         ) : (
           <div className="grid sm:grid-cols-2 gap-3">
             {similarCandidates.map((sc) => (
-              <CardLink key={sc.candidate.id} to={`/candidates/${sc.candidate.id}`}>
-                <h3 className="font-display text-base mb-1">{sc.candidate.name}</h3>
+              <CardLink
+                key={sc.candidate.id}
+                to={`/candidates/${sc.candidate.id}`}
+              >
+                <h3 className="font-display text-base mb-1">
+                  {sc.candidate.name}
+                </h3>
+
                 <p className="text-xs font-mono text-papermuted mb-2">
-                  {sc.sharedSkillCount} shared skill{sc.sharedSkillCount === 1 ? "" : "s"}
+                  {sc.sharedSkillCount} shared skill
+                  {sc.sharedSkillCount === 1 ? "" : "s"}
                 </p>
+
                 <div className="flex flex-wrap gap-1.5">
-                  {sc.sharedSkills.slice(0, 5).map((s) => (
-                    <SkillPill key={s}>{s}</SkillPill>
-                  ))}
+                  {sc.sharedSkills
+                    .slice(0, 5)
+                    .map((s) => (
+                      <SkillPill key={s}>
+                        {s}
+                      </SkillPill>
+                    ))}
                 </div>
               </CardLink>
             ))}

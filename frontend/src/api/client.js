@@ -31,7 +31,12 @@ export const api = {
   listCandidates: () => request("/api/candidates"),
   getCandidate: (id) => request(`/api/candidates/${encodeURIComponent(id)}`),
   listJobs: () => request("/api/jobs"),
-  getJob: (id) => request(`/api/jobs/${encodeURIComponent(id)}`),
+   skillGap: (candidateId, jobId) =>
+  request(
+    `/api/candidates/${encodeURIComponent(candidateId)}/skill-gap/${encodeURIComponent(jobId)}`
+  ),
+
+getJob: (id) => request(`/api/jobs/${encodeURIComponent(id)}`),
   listSkills: () => request("/api/skills"),
   relatedSkills: (name) => request(`/api/skills/${encodeURIComponent(name)}/related`),
   skillPath: (from, to) =>
