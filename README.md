@@ -7,9 +7,9 @@ traversals instead of piles of joins.
 
 Built for the Wexa AI take-home assignment.
 
-- **Demo:** `<add your hosted URL here>`
-- **Screen recording:** `<add your recording link here>`
-- **Repo:** `<add your GitHub URL here>`
+- **Demo:** `https://skillgraph-04cp.onrender.com`
+- **Screen recording:**` [Watch the SkillGraph presentation](https://youtu.be/szRwf6Jh5No)
+- **Repo:** `https://github.com/bkbhavan505-wq/skillgraph
 
 ---
 
