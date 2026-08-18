@@ -247,10 +247,23 @@ ORDER BY sharedCount DESC
 
 ---
 
+## 7. screenshots
+
 ## 7. Screenshots
 
-`<add 3–4 screenshots here: Dashboard, a Candidate detail page showing job matches, a Job detail
-page showing candidate matches, and the Skills page with a traced path>`
+### Dashboard
+
+![SkillGraph Dashboard](screenshots/Dashboard.png)
+
+###Candidates
+![Candidate detail showing job matches](screenshots/Candidates.png)
+
+###Jobs
+![Job detail showing candidate matches](screenshots/Jobs.png)
+
+###SkillPaths
+![Skills page showing a traced skill path](screenshots/SkillPaths.png)
+>`
 
 ---
 
